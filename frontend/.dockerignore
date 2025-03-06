@@ -1,0 +1,29 @@
+# Exclude node_modules (we'll install fresh ones)
+node_modules
+
+# Exclude build artifacts
+dist
+build
+.cache
+
+# Exclude development files
+.git
+.github
+.gitignore
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Exclude environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Exclude editor configs
+.idea
+.vscode
+*.swp
+*.swo
