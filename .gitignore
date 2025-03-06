@@ -15,6 +15,15 @@ dist-ssr
 *.venv/*
 */.venv/*
 *.code-workspace
+__pycache__/
+*/.pytest_cache/*
+*/.mypy_cache/*
+*/.vscode/*
+*/.idea/*
+*/.DS_Store
+*/.suo
+*/.ntvs*
+*/.njsproj
 
 # Editor directories and files
 .vscode/*

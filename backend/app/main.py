@@ -56,3 +56,16 @@ def create_transition(
 def get_transitions(db: Session = Depends(get_db)):
     """Get all recorded mood transitions"""
     return db.query(models.MoodTransition).all()
+
+@app.get("/")
+def read_root():
+    """Root endpoint to check if API is running"""
+    return {
+        "status": "online",
+        "message": "Mood Transition API is running",
+        "endpoints": [
+            {"path": "/moods", "method": "GET", "description": "Get all moods"},
+            {"path": "/transitions", "method": "GET", "description": "Get all transitions"},
+            {"path": "/transitions", "method": "POST", "description": "Create a new transition"}
+        ]
+    }
