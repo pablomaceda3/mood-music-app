@@ -1,4 +1,5 @@
 # Update the import section at the top of spotify.py
+import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,8 +14,8 @@ from app.database import SessionLocal
 spotify_router = APIRouter()
 
 # Environment variables for Spotify Credentials
-SPOTIFY_CLIENT_ID = "your-client-id"
-SPOTIFY_CLIENT_SECRET = "your-client-secret" 
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 SPOTIFY_REDIRECT_URI = "http://localhost:8000/spotify/callback"
 SCOPE = "playlist-modify-private playlist-modify-public"
 
