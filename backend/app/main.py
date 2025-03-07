@@ -57,6 +57,13 @@ def get_transitions(db: Session = Depends(get_db)):
     """Get all recorded mood transitions"""
     return db.query(models.MoodTransition).all()
 
+@app.get("/debug/moods")
+def debug_moods(db: Session = Depends(get_db)):
+    """Debug endpoint to see raw mood data"""
+    moods = db.query(models.Mood).all()
+    transitions = db.query(models.MoodTransition).all()
+    return {"moods": moods, "transitions": transitions}
+
 @app.get("/")
 def read_root():
     """Root endpoint to check if API is running"""
