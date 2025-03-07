@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SpotifyIntegration from './SpotifyIntegration';
 
 // Define our preset moods
 const MOOD_MAP = {
@@ -54,6 +55,7 @@ const MoodTransition = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [allTransitions, setAllTransitions] = useState([]);
+  const [lastTransition, setLastTransition] = useState(null);
   
   // Function to fetch all transitions
   const fetchTransitions = async () => {
@@ -100,6 +102,9 @@ const MoodTransition = () => {
       const data = await response.json();
       setMessage({ text: 'Transition saved successfully!', type: 'success' });
       
+      // Set the last transition for Spotify integration
+      setLastTransition(data);
+      
       // Refresh transitions list
       fetchTransitions();
       
@@ -112,6 +117,14 @@ const MoodTransition = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle when a playlist is created
+  const handlePlaylistCreated = (playlistData) => {
+    setMessage({ 
+      text: `Playlist created successfully! ${playlistData.track_count} tracks added.`, 
+      type: 'success' 
+    });
   };
   
   return (
@@ -161,6 +174,14 @@ const MoodTransition = () => {
               </div>
             )}
           </div>
+        )}
+        
+        {/* Spotify Integration */}
+        {lastTransition && (
+          <SpotifyIntegration 
+            moodTransition={lastTransition}
+            onPlaylistCreated={handlePlaylistCreated}
+          />
         )}
         
         {/* Show recent transitions */}

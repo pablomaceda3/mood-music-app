@@ -33,3 +33,27 @@ class MoodTransition(MoodTransitionBase):
 
     class Config:
         orm_mode = True
+
+class PlaylistRequest(BaseModel):
+    """Schema for playlist creation requests"""
+    initial_mood_id: int
+    target_mood_id: int
+    transition_id: int
+
+class SpotifyPlaylistBase(BaseModel):
+    """Base schema for Spotify playlist data"""
+    transition_id: int
+    spotify_id: str
+    playlist_url: str
+
+class SpotifyPlaylistCreate(SpotifyPlaylistBase):
+    """Schema for creating Spotify playlist records"""
+    pass
+
+class SpotifyPlaylist(SpotifyPlaylistBase):
+    """Schema for reading Spotify playlist data"""
+    id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
