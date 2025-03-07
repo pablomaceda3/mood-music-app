@@ -56,4 +56,27 @@ def create_transition(
     db.refresh(db_transition)
     return db_transition
 
-@app.get("/transitions", response_model=List[schemas.Mood
+@app.get("/transitions", response_model=List[schemas.MoodTransition])
+def get_transitions(db: Session = Depends(get_db)):
+    """Get all recorded mood transitions"""
+    return db.query(models.MoodTransition).all()
+
+@app.get("/debug/moods")
+def debug_moods(db: Session = Depends(get_db)):
+    """Debug endpoint to see raw mood data"""
+    moods = db.query(models.Mood).all()
+    transitions = db.query(models.MoodTransition).all()
+    return {"moods": moods, "transitions": transitions}
+
+@app.get("/")
+def read_root():
+    """Root endpoint to check if API is running"""
+    return {
+        "status": "online",
+        "message": "Mood Transition API is running",
+        "endpoints": [
+            {"path": "/moods", "method": "GET", "description": "Get all moods"},
+            {"path": "/transitions", "method": "GET", "description": "Get all transitions"},
+            {"path": "/transitions", "method": "POST", "description": "Create a new transition"}
+        ]
+    }
