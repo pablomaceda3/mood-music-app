@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List
 from app import models
 from app import schemas
+from app.spotify import spotify_router
 from app.database import SessionLocal, engine
 
 # Create database tables
@@ -21,6 +22,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add the Spotify router to your FastAPI app
+app.include_router(spotify_router, prefix="/spotify", tags=["spotify"])
 
 # Dependency to get database session
 def get_db():
