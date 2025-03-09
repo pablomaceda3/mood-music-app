@@ -12,7 +12,7 @@ load_dotenv()
 # postgresql://username:password@host:port/database_name
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@db:5432/mood_transitions"
+    "postgresql://postgres:postgres@postgres:5432/mood_transitions"
 )
 
 # Create SQLAlchemy engine - note we removed the check_same_thread argument
