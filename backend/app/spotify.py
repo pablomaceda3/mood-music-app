@@ -4,6 +4,7 @@ import certifi
 import spotipy
 import ssl
 from spotipy.oauth2 import SpotifyOAuth
+from spotipy.cache_handler import CacheFileHandler
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -13,15 +14,22 @@ from app import models, schemas
 from app.database import SessionLocal
 
 
-os.environ['REQUESTS_CA_BUNDLE'] = '/app/cacert.pem'
+os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ['REQUESTS_CA_BUNDLE'] = 'app/cacert.pem'
 # Create a router for Spotify endpoints
 spotify_router = APIRouter()
+
 
 # Environment variables for Spotify Credentials
 SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 SPOTIFY_REDIRECT_URI = "http://localhost:8000/spotify/callback"
 SCOPE = "playlist-modify-private playlist-modify-public"
+
+# Cache variables
+CACHE_LOCATION = "/app/.spotify_cache"
+cache_handler = CacheFileHandler(cache_path=CACHE_LOCATION)
+
 
 # Database dependency
 def get_db():
@@ -33,25 +41,26 @@ def get_db():
 
 # Function to create a Spotify client
 def get_spotify_client():
-    # Create SSL context with certifi bundle
-    custom_ssl_context = ssl.create_default_context(cafile=certifi.where())
-    
-    sp_oauth = SpotifyOAuth(
-        client_id=SPOTIFY_CLIENT_ID,
-        client_secret=SPOTIFY_CLIENT_SECRET,
-        redirect_uri=SPOTIFY_REDIRECT_URI,
-        scope=SCOPE
-    )
-
-
-    # This will require user login at first
-    token_info = sp_oauth.get_cached_token()
-
-    if not token_info:
-        # Handle the need to authenticate
-        raise HTTPException(status_code=401, detail="Spotify authentication required")
-
-    return spotipy.Spotify(auth=token_info["access_token"])
+    try:
+        sp_oauth = SpotifyOAuth(
+            client_id=SPOTIFY_CLIENT_ID,
+            client_secret=SPOTIFY_CLIENT_SECRET,
+            redirect_uri=SPOTIFY_REDIRECT_URI,
+            scope=SCOPE
+        )
+        
+        # Print token info for debugging
+        token_info = sp_oauth.get_cached_token()
+        print("Token info:", token_info is not None)
+        
+        if not token_info:
+            print("No token found, authentication required")
+            raise HTTPException(status_code=401, detail="Spotify authentication required")
+        
+        return spotipy.Spotify(auth=token_info["access_token"])
+    except Exception as e:
+        print(f"Error in get_spotify_client: {str(e)}")
+        raise
 
 # Login route that redirects to Spotify
 @spotify_router.get("/login")
@@ -60,7 +69,8 @@ def spotify_login():
         client_id=SPOTIFY_CLIENT_ID,
         client_secret=SPOTIFY_CLIENT_SECRET,
         redirect_uri=SPOTIFY_REDIRECT_URI,
-        scope=SCOPE
+        scope=SCOPE,
+        cache_handler=cache_handler
     )
     auth_url = sp_oauth.get_authorize_url()
     return RedirectResponse(url=auth_url)
@@ -73,10 +83,12 @@ def spotify_callback(code: str):
             client_id=SPOTIFY_CLIENT_ID,
             client_secret=SPOTIFY_CLIENT_SECRET,
             redirect_uri=SPOTIFY_REDIRECT_URI,
-            scope=SCOPE
+            scope=SCOPE,
+            cache_handler=cache_handler
         )
         
         # Log success (optional)
+        token_info = sp_oauth.get_access_token(code)
         print("Successfully obtained Spotify token")
         
         # Redirect to your frontend after successful authentication

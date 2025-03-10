@@ -12,6 +12,7 @@ RUN apk add --no-cache \
     python3-dev \
     ca-certificates \
     openssl \
+    curl \
     && update-ca-certificates \
     && pip install --upgrade pip certifi
 

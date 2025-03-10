@@ -39,6 +39,7 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
     setIsCreatingPlaylist(true);
     setError(null);
     
+      // In the createPlaylist function:
     try {
       const response = await fetch('http://localhost:8000/spotify/create-playlist', {
         method: 'POST',
@@ -52,10 +53,18 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
         }),
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to create playlist: ${response.statusText}`);
+      // Add this check to see what's happening with redirects
+      if (response.redirected) {
+        console.log("Request was redirected to:", response.url);
+        window.location.href = response.url;
+        return;
       }
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create playlist: ${response.status} - ${errorText}`);
+      }
+  
       const data = await response.json();
       setPlaylistUrl(data.playlist_url);
       

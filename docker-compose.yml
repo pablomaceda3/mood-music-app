@@ -37,8 +37,10 @@ services:
   backend:
     build: ./backend
     command: >
-      sh -c "cd /app && 
-             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "apk add --no-cache curl &&
+         curl -k -o /app/cacert.pem https://curl.se/ca/cacert.pem &&
+         cd /app &&
+         python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./backend:/app
       - ./.env:/app/.env # Mount the .env file
