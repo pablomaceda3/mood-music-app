@@ -1,6 +1,8 @@
 # Update the import section at the top of spotify.py
 import os
+import certifi
 import spotipy
+import ssl
 from spotipy.oauth2 import SpotifyOAuth
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -10,6 +12,8 @@ from datetime import datetime
 from app import models, schemas
 from app.database import SessionLocal
 
+
+os.environ['REQUESTS_CA_BUNDLE'] = '/app/cacert.pem'
 # Create a router for Spotify endpoints
 spotify_router = APIRouter()
 
@@ -29,12 +33,16 @@ def get_db():
 
 # Function to create a Spotify client
 def get_spotify_client():
+    # Create SSL context with certifi bundle
+    custom_ssl_context = ssl.create_default_context(cafile=certifi.where())
+    
     sp_oauth = SpotifyOAuth(
         client_id=SPOTIFY_CLIENT_ID,
         client_secret=SPOTIFY_CLIENT_SECRET,
         redirect_uri=SPOTIFY_REDIRECT_URI,
         scope=SCOPE
     )
+
 
     # This will require user login at first
     token_info = sp_oauth.get_cached_token()
@@ -60,14 +68,23 @@ def spotify_login():
 # Callback route that Spotify redirects to after login
 @spotify_router.get("/callback")
 def spotify_callback(code: str):
-    sp_oauth = SpotifyOAuth(
-        client_id=SPOTIFY_CLIENT_ID,
-        client_secret=SPOTIFY_CLIENT_SECRET,
-        redirect_uri=SPOTIFY_REDIRECT_URI,
-        scope=SCOPE
-    )
-    token_info = sp_oauth.get_access_token(code)
-    return {"success": True, "message": "Successfully authenticated with Spotify"}
+    try:
+        sp_oauth = SpotifyOAuth(
+            client_id=SPOTIFY_CLIENT_ID,
+            client_secret=SPOTIFY_CLIENT_SECRET,
+            redirect_uri=SPOTIFY_REDIRECT_URI,
+            scope=SCOPE
+        )
+        
+        # Log success (optional)
+        print("Successfully obtained Spotify token")
+        
+        # Redirect to your frontend after successful authentication
+        return RedirectResponse(url="http://localhost:5173")
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error in Spotify callback: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
 
 # Test endpoint to verify Spotify client is working
 @spotify_router.get("/me")
