@@ -25,6 +25,7 @@ __pycache__/
 */.suo
 */.ntvs*
 */.njsproj
+*/.spotify_cache
 
 # Editor directories and files
 .vscode/*

@@ -1,20 +1,16 @@
-# Use Node.js as base image
 FROM node:20-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy package files first
+COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
-# Copy the rest of the frontend code
+# Copy everything else
 COPY . .
 
-# Expose the Vite dev server port
+# Expose port and set command
 EXPOSE 5173
-
-# Command to run Vite dev server with host set to allow external connections
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

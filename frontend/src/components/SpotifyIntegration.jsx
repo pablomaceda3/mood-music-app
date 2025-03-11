@@ -6,27 +6,51 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
   const [playlistUrl, setPlaylistUrl] = useState(null);
   const [error, setError] = useState(null);
   
-  // Check if user is already authenticated with Spotify
+  // Check if user is already authenticated with Spotify and 
+  // automatically create playlist if redirected from auth
   useEffect(() => {
+    // Check if we were redirected from Spotify auth
+    const urlParams = new URLSearchParams(window.location.search);
+    const authStatus = urlParams.get('auth_status');
+    
     const checkAuth = async () => {
       try {
+        console.log('Checking Spotify authentication status...');
         const response = await fetch('http://localhost:8000/spotify/me');
+        console.log('Auth check response:', response.status);
+        
         if (response.ok) {
+          const data = await response.json();
+          console.log('Authenticated as:', data);
           setIsAuthenticated(true);
+          
+          // If auth just succeeded and we have a mood transition
+          if (authStatus === 'success' && moodTransition) {
+            createPlaylist();
+          }
+        } else {
+          console.log('Not authenticated with Spotify');
+          setIsAuthenticated(false);
         }
       } catch (err) {
-        // Not authenticated yet, which is fine
-        console.log('Not authenticated with Spotify yet');
+        console.error('Auth check error:', err);
+        setIsAuthenticated(false);
+      }
+      
+      // Clean up URL parameters if they exist
+      if (authStatus) {
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     };
     
     checkAuth();
-  }, []);
+  }, [moodTransition]);
   
   // Function to authenticate with Spotify
   const authenticateWithSpotify = () => {
-    // Redirect to the backend login route
-    window.location.href = 'http://localhost:8000/spotify/login';
+    console.log('Initiating Spotify authentication...');
+    // Use window.open for better debugging
+    window.open('http://localhost:8000/spotify/login', '_self');
   };
   
   // Function to create a playlist based on the mood transition
@@ -39,7 +63,6 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
     setIsCreatingPlaylist(true);
     setError(null);
     
-      // In the createPlaylist function:
     try {
       const response = await fetch('http://localhost:8000/spotify/create-playlist', {
         method: 'POST',
@@ -71,6 +94,9 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
       if (onPlaylistCreated) {
         onPlaylistCreated(data);
       }
+      
+      // Redirect user to the Spotify playlist
+      window.location.href = data.playlist_url;
     } catch (err) {
       setError(`Error creating playlist: ${err.message}`);
       console.error(err);

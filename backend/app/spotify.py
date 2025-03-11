@@ -15,7 +15,7 @@ from app.database import SessionLocal
 
 
 os.environ['SSL_CERT_FILE'] = certifi.where()
-os.environ['REQUESTS_CA_BUNDLE'] = 'app/cacert.pem'
+os.environ['REQUESTS_CA_BUNDLE'] = '/app/cacert.pem'
 # Create a router for Spotify endpoints
 spotify_router = APIRouter()
 
@@ -42,22 +42,30 @@ def get_db():
 # Function to create a Spotify client
 def get_spotify_client():
     try:
+        # Print environment variables to check if they're loaded
+        print(f"Client ID set: {bool(SPOTIFY_CLIENT_ID)}")
+        print(f"Client Secret set: {bool(SPOTIFY_CLIENT_SECRET)}")
+        
         sp_oauth = SpotifyOAuth(
             client_id=SPOTIFY_CLIENT_ID,
             client_secret=SPOTIFY_CLIENT_SECRET,
             redirect_uri=SPOTIFY_REDIRECT_URI,
-            scope=SCOPE
+            scope=SCOPE,
+            cache_handler=cache_handler
         )
         
-        # Print token info for debugging
+        # Try to get token info and print details
         token_info = sp_oauth.get_cached_token()
-        print("Token info:", token_info is not None)
+        print(f"Token info exists: {token_info is not None}")
         
-        if not token_info:
+        if token_info:
+            print(f"Token expires in: {token_info.get('expires_in', 'unknown')}")
+            print(f"Cache path: {CACHE_LOCATION}")
+            return spotipy.Spotify(auth=token_info["access_token"])
+        else:
             print("No token found, authentication required")
             raise HTTPException(status_code=401, detail="Spotify authentication required")
-        
-        return spotipy.Spotify(auth=token_info["access_token"])
+            
     except Exception as e:
         print(f"Error in get_spotify_client: {str(e)}")
         raise
@@ -87,16 +95,20 @@ def spotify_callback(code: str):
             cache_handler=cache_handler
         )
         
-        # Log success (optional)
+        # Get token and save it to cache
         token_info = sp_oauth.get_access_token(code)
+        
+        if not token_info:
+            print("Failed to obtain token from code")
+            return RedirectResponse(url="http://localhost:5173?auth_status=failed")
+        
         print("Successfully obtained Spotify token")
         
-        # Redirect to your frontend after successful authentication
-        return RedirectResponse(url="http://localhost:5173")
+        # Redirect to frontend with success status
+        return RedirectResponse(url="http://localhost:5173?auth_status=success")
     except Exception as e:
-        # Log the error for debugging
         print(f"Error in Spotify callback: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
+        return RedirectResponse(url="http://localhost:5173?auth_status=error&message={str(e)}")
 
 # Test endpoint to verify Spotify client is working
 @spotify_router.get("/me")
