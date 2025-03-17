@@ -1,82 +1,118 @@
-from fastapi import FastAPI, HTTPException, Depends
+import os
+import logging
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from datetime import datetime
-from typing import List
-from app import models
-from app import schemas
-from app.spotify import spotify_router
-from app.database import SessionLocal, engine
 
-# Create database tables
-models.Base.metadata.create_all(bind=engine)
+from app.core.config import settings
+from app.api.endpoints import mood, transitions, spotify
+from app.db.session import engine
+from app.db import base  # Import to register all models with SQLAlchemy
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO if settings.DEBUG else logging.WARNING,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(title="Mood Transition API")
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    description="API for tracking mood transitions and creating Spotify playlists",
+    version="1.0.0",
+)
 
-# Configure CORS to allow requests from our React frontend
+# Set up CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite's default port
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Add the Spotify router to your FastAPI app
-app.include_router(spotify_router, prefix="/spotify", tags=["spotify"])
+# Include routers
+app.include_router(
+    mood.router,
+    prefix=f"{settings.API_V1_STR}/moods",
+    tags=["moods"],
+)
+app.include_router(
+    transitions.router,
+    prefix=f"{settings.API_V1_STR}/transitions",
+    tags=["transitions"],
+)
+app.include_router(
+    spotify.router,
+    prefix=f"{settings.API_V1_STR}/spotify",
+    tags=["spotify"],
+)
 
-# Dependency to get database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Startup and shutdown events
+@app.on_event("startup")
+async def startup_db_client():
+    """
+    Initialize database and verify connections on startup.
+    In a Docker environment, we need to handle potential delays
+    in service availability.
+    """
+    logger.info("Starting application in Docker container")
+    
+    # In Docker, we might need to wait for the database to be ready
+    if settings.DEBUG:
+        # Create tables for development
+        try:
+            from app.db.base import Base
+            Base.metadata.create_all(bind=engine)
+            logger.info("Database tables created successfully")
+        except Exception as e:
+            logger.error(f"Error creating database tables: {e}")
+    
+    required_env_vars = ["DATABASE_URL"]
+    if settings.SPOTIFY_CLIENT_ID:
+        logger.info("Spotify integration enabled")
+    else:
+        logger.warning("Spotify credentials not configured - integration disabled")
 
-# Routes
-@app.get("/moods", response_model=List[schemas.Mood])
-def get_moods(db: Session = Depends(get_db)):
-    """Get all predefined moods"""
-    return db.query(models.Mood).all()
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    """
+    Perform cleanup when the container is stopped.
+    """
+    logger.info("Shutting down application")
+    # Any cleanup needed for container shutdown
 
-@app.post("/transitions", response_model=schemas.MoodTransition)
-def create_transition(
-    transition: schemas.MoodTransitionCreate,
-    db: Session = Depends(get_db)
-):
-    """Record a new mood transition"""
-    db_transition = models.MoodTransition(
-        initial_mood_id=transition.initial_mood_id,
-        target_mood_id=transition.target_mood_id,
-        timestamp=datetime.utcnow()
-    )
-    db.add(db_transition)
-    db.commit()
-    db.refresh(db_transition)
-    return db_transition
-
-@app.get("/transitions", response_model=List[schemas.MoodTransition])
-def get_transitions(db: Session = Depends(get_db)):
-    """Get all recorded mood transitions"""
-    return db.query(models.MoodTransition).all()
-
-@app.get("/debug/moods")
-def debug_moods(db: Session = Depends(get_db)):
-    """Debug endpoint to see raw mood data"""
-    moods = db.query(models.Mood).all()
-    transitions = db.query(models.MoodTransition).all()
-    return {"moods": moods, "transitions": transitions}
-
-@app.get("/")
-def read_root():
-    """Root endpoint to check if API is running"""
+# Root endpoint
+@app.get("/", tags=["root"])
+async def root():
+    """
+    Root endpoint to check if API is running.
+    """
     return {
         "status": "online",
-        "message": "Mood Transition API is running",
-        "endpoints": [
-            {"path": "/moods", "method": "GET", "description": "Get all moods"},
-            {"path": "/transitions", "method": "GET", "description": "Get all transitions"},
-            {"path": "/transitions", "method": "POST", "description": "Create a new transition"}
-        ]
+        "message": f"{settings.PROJECT_NAME} is running",
+        "environment": "development" if settings.DEBUG else "production",
+        "container_id": os.environ.get("HOSTNAME", "unknown"),
+    }
+
+# Health check endpoint for container orchestration
+@app.get("/health", tags=["health"])
+async def health_check():
+    """
+    Health check endpoint for Docker health checks and monitoring.
+    """
+    # Add any health checks needed by Docker or orchestration tools
+    try:
+        # Check database connection
+        with engine.connect() as connection:
+            connection.execute("SELECT 1")
+        db_status = "connected"
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        db_status = "disconnected"
+    
+    return {
+        "status": "healthy" if db_status == "connected" else "unhealthy",
+        "database": db_status,
+        "api_version": "1.0.0",
     }
