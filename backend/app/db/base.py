@@ -4,4 +4,5 @@ before creating the tables.
 """
 from app.db.session import Base
 
-from app.models.mood import Mood, MoodTransition, SpotifyPlaylist
+from app.models.mood import Mood, MoodTransition
+from app.models.spotify import SpotifyPlaylist

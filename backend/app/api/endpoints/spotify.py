@@ -9,7 +9,8 @@ from typing import Dict, List, Any
 
 from app.core.config import settings
 from app.api.dependencies import get_db, get_spotify_client
-from app.models.mood import MoodTransition, Mood, SpotifyPlaylist
+from app.models.mood import MoodTransition, Mood
+from app.models.spotify import SpotifyPlaylist
 from app.schemas.spotify import PlaylistRequest, PlaylistResponse
 
 
@@ -68,10 +69,10 @@ async def get_user_profile(
             detail=f"Error fetching Spotify profile: {e}"
         )
 
-@router.post("/create-playlist", repsonse_model=PlaylistResponse)
+@router.post("/create-playlist", response_model=PlaylistResponse)
 async def create_mood_transition_playlist(
     request: PlaylistRequest,
-    spotify: spotipy.Spotify = Depends(get_spotify_clientt),
+    spotify: spotipy.Spotify = Depends(get_spotify_client),
     db: Session = Depends(get_db)
 ):
     """Create a Spotify playlist based on a mood transition"""

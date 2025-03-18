@@ -5,7 +5,7 @@ from typing import List
 
 from app.api.dependencies import get_db
 from app.models.mood import MoodTransition, Mood
-from app.schemas.mood import (
+from app.schemas.transition import (
     TransitionResponse,
     TransitionCreate,
     TransitionUpdate,

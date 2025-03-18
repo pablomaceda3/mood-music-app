@@ -25,7 +25,7 @@ async def get_mood(mood_id: int, db: Session = Depends(get_db)):
         )
     return mood
 
-@router.post("/", response_model=MoodResponse, status_code=status.HTTP_201)
+@router.post("/", response_model=MoodResponse, status_code=status.HTTP_201_CREATED)
 async def create_mood(mood: MoodCreate, db: Session = Depends(get_db)):
     """Create a new mood (admin only)"""
     existing_mood = db.query(Mood).filter(Mood.name == mood.name).first()

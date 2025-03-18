@@ -1,7 +1,8 @@
 import os
 import certifi
 from pathlib import Path
-from pydantic import BaseSettings, PosgresDsn, validator
+from pydantic import validator
+from pydantic_settings import BaseSettings
 from typing import Any, Dict, Optional
 from spotipy.cache_handler import CacheFileHandler
 
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
 
 
     # Database Configuration
-    DATABASE_URL: PostgresDsn = "postgresql://postgres:password@localhost:5432/mood_transitions"
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/mood_transitions"
 
 
     # Spotify Configuration
@@ -34,7 +35,7 @@ class Settings(BaseSettings):
 
 
     # SSL Configuration
-    SSL_CERT_FILE: str = certiif.where()
+    SSL_CERT_FILE: str = certifi.where()
 
     @validator("DATABASE_URL", pre=True)
     def assemble_db_connection(cls, v: Optional[str]) -> Any:

@@ -5,12 +5,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:5173"
-    # No volumes at all - everything is copied into the container
     environment:
       - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
-    # Add CPU and memory limits
     deploy:
       resources:
         limits:
@@ -47,9 +45,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # These environment variables can be overridden by the .env file
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/mood_transitions}
-      - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY}
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
       - DEBUG=${DEBUG:-True}
