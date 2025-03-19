@@ -1,18 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import SpotifyIntegration from './SpotifyIntegration';
-
-// Define our preset moods
-const MOOD_MAP = {
-  angry: { id: 1, color: '#FF4D4D', label: 'Angry' },
-  happy: { id: 2, color: '#FFD700', label: 'Happy' },
-  sad: { id: 3, color: '#4169E1', label: 'Sad' },
-  indifferent: { id: 4, color: '#A9A9A9', label: 'Indifferent' }
-};
+import { fetchMoods, saveTransition, fetchTransitions } from '../services/MoodService';
 
 // Single mood button component
 const MoodButton = ({ mood, isSelected, onClick }) => {
-  const { color, label } = MOOD_MAP[mood];
-  
   return (
     <button
       onClick={() => onClick(mood)}
@@ -21,27 +12,27 @@ const MoodButton = ({ mood, isSelected, onClick }) => {
         ${isSelected ? 'ring-2 ring-offset-2 ring-gray-400 scale-105' : 'hover:scale-102'}
       `}
       style={{
-        backgroundColor: color,
+        backgroundColor: mood.color,
         color: 'white'
       }}
     >
-      {label}
+      {mood.name}
     </button>
   );
 };
 
 // Panel component for mood selection
-const MoodPanel = ({ title, selectedMood, onMoodSelect }) => {
+const MoodPanel = ({ title, selectedMood, moods, onMoodSelect }) => {
   return (
     <div className="p-8 bg-white rounded-lg shadow-sm">
       <h2 className="text-2xl mb-8">{title}</h2>
       <div className="flex flex-col gap-2 max-w-md">
-        {Object.keys(MOOD_MAP).map((mood) => (
+        {moods.map((mood) => (
           <MoodButton
-            key={mood}
+            key={mood.id}
             mood={mood}
-            isSelected={selectedMood === mood}
-            onClick={onMoodSelect}
+            isSelected={selectedMood && selectedMood.id === mood.id}
+            onClick={() => onMoodSelect(mood)}
           />
         ))}
       </div>
@@ -56,25 +47,44 @@ const MoodTransition = () => {
   const [message, setMessage] = useState(null);
   const [allTransitions, setAllTransitions] = useState([]);
   const [lastTransition, setLastTransition] = useState(null);
+  const [moods, setMoods] = useState([]);
+  const [isLoadingMoods, setIsLoadingMoods] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Function to fetch all moods from the API
+  const loadMoods = async () => {
+    setIsLoadingMoods(true);
+    setError(null);
+    
+    try {
+      const moodsData = await fetchMoods();
+      setMoods(moodsData);
+    } catch (error) {
+      console.error('Error fetching moods:', error);
+      setError('Failed to load moods. Please refresh the page.');
+    } finally {
+      setIsLoadingMoods(false);
+    }
+  };
   
   // Function to fetch all transitions
-  const fetchTransitions = async () => {
+  const loadTransitions = async () => {
     try {
-      const response = await fetch('http://localhost:8000/transitions');
-      const data = await response.json();
-      setAllTransitions(data);
+      const transitionsData = await fetchTransitions();
+      setAllTransitions(transitionsData);
     } catch (error) {
       console.error('Error fetching transitions:', error);
     }
   };
   
-  // Load transitions when component mounts
+  // Load moods and transitions when component mounts
   useEffect(() => {
-    fetchTransitions();
+    loadMoods();
+    loadTransitions();
   }, []);
   
   // Function to save transition to the backend
-  const saveTransition = async () => {
+  const handleSaveTransition = async () => {
     if (!initialMood || !targetMood) {
       setMessage({ text: 'Please select both moods', type: 'error' });
       return;
@@ -84,33 +94,14 @@ const MoodTransition = () => {
     setMessage(null);
     
     try {
-      const response = await fetch('http://localhost:8000/transitions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          initial_mood_id: MOOD_MAP[initialMood].id,
-          target_mood_id: MOOD_MAP[targetMood].id,
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const data = await saveTransition(initialMood.id, targetMood.id);
       setMessage({ text: 'Transition saved successfully!', type: 'success' });
       
       // Set the last transition for Spotify integration
       setLastTransition(data);
       
       // Refresh transitions list
-      fetchTransitions();
-      
-      // Optional: reset selections
-      // setInitialMood(null);
-      // setTargetMood(null);
+      loadTransitions();
     } catch (error) {
       console.error('Error saving transition:', error);
       setMessage({ text: `Error: ${error.message}`, type: 'error' });
@@ -127,6 +118,35 @@ const MoodTransition = () => {
     });
   };
   
+  // Show loading state while fetching moods
+  if (isLoadingMoods) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl mb-4">Loading moods...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state if mood loading failed
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <div className="text-xl mb-4">{error}</div>
+          <button 
+            onClick={loadMoods}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -136,12 +156,14 @@ const MoodTransition = () => {
           <MoodPanel
             title="How are you feeling now?"
             selectedMood={initialMood}
+            moods={moods}
             onMoodSelect={setInitialMood}
           />
           
           <MoodPanel
             title="How would you like to feel?"
             selectedMood={targetMood}
+            moods={moods}
             onMoodSelect={setTargetMood}
           />
         </div>
@@ -151,17 +173,17 @@ const MoodTransition = () => {
           <div className="mt-8 p-6 bg-white rounded-lg shadow-sm text-center">
             <p className="text-lg">
               Transitioning from{' '}
-              <span style={{ color: MOOD_MAP[initialMood].color }}>
-                {MOOD_MAP[initialMood].label}
+              <span style={{ color: initialMood.color }}>
+                {initialMood.name}
               </span>
               {' '}to{' '}
-              <span style={{ color: MOOD_MAP[targetMood].color }}>
-                {MOOD_MAP[targetMood].label}
+              <span style={{ color: targetMood.color }}>
+                {targetMood.name}
               </span>
             </p>
             
             <button 
-              onClick={saveTransition}
+              onClick={handleSaveTransition}
               disabled={isLoading}
               className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
             >

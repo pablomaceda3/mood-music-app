@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 const ConnectionDebugger = () => {
   const [testResult, setTestResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [backendUrl, setBackendUrl] = useState('http://localhost:8000');
+  const [backendUrl, setBackendUrl] = useState('http://localhost:8000/api/v1');
 
   const testConnection = async () => {
     setLoading(true);

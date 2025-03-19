@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// Base API URL with version
+const API_URL = 'http://localhost:8000/api/v1';
+
 const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
@@ -16,7 +19,7 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
     const checkAuth = async () => {
       try {
         console.log('Checking Spotify authentication status...');
-        const response = await fetch('http://localhost:8000/spotify/me');
+        const response = await fetch(`${API_URL}/spotify/me`);
         console.log('Auth check response:', response.status);
         
         if (response.ok) {
@@ -50,7 +53,7 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
   const authenticateWithSpotify = () => {
     console.log('Initiating Spotify authentication...');
     // Use window.open for better debugging
-    window.open('http://localhost:8000/spotify/login', '_self');
+    window.open(`${API_URL}/spotify/login`, '_self');
   };
   
   // Function to create a playlist based on the mood transition
@@ -64,7 +67,7 @@ const SpotifyIntegration = ({ onPlaylistCreated, moodTransition }) => {
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:8000/spotify/create-playlist', {
+      const response = await fetch(`${API_URL}/spotify/create-playlist`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
