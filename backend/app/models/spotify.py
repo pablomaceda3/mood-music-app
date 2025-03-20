@@ -12,6 +12,7 @@ class SpotifyPlaylist(Base):
     Attributes:
         id: Primary key
         transition_id: Foreign key to the mood transiiton this playlist was created for
+        user_id: Foreign key to the user who created the playlist
         spotify_id: Spotify's own ID for the playlist
         playlist_url: Public URL to access the playlist on Spotify
         created_at: When the playlist was created
@@ -20,6 +21,7 @@ class SpotifyPlaylist(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     transition_id = Column(Integer, ForeignKey("mood_transitions.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
     spotify_id = Column(String, unique=True, index=True)
     playlist_url = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -27,6 +29,10 @@ class SpotifyPlaylist(Base):
     transition = relationship(
         "MoodTransition",
         backref="playlists"
+    )
+    user = relationship(
+        "User",
+        backref="spotify_playlists"
     )
 
     def __repr__(self):
