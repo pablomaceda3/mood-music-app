@@ -6,3 +6,4 @@ from app.db.session import Base
 
 from app.models.mood import Mood, MoodTransition
 from app.models.spotify import SpotifyPlaylist
+from app.models.user import User

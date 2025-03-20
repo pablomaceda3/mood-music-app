@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.endpoints import mood, transitions, spotify
+from app.api.endpoints import mood, transitions, spotify, auth
 from app.db.session import engine
 from app.db import base  # Import to register all models with SQLAlchemy
 
@@ -32,6 +32,11 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(
+    auth.router,
+    prefix=f"{settings.API_V1_STR}/auth",
+    tags=["auth"],
+)
 app.include_router(
     mood.router,
     prefix=f"{settings.API_V1_STR}/moods",

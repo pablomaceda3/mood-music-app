@@ -1,5 +1,6 @@
 import os
 import certifi
+import secrets
 from pathlib import Path
 from pydantic import validator
 from pydantic_settings import BaseSettings
@@ -21,6 +22,12 @@ class Settings(BaseSettings):
 
     # Database Configuration
     DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/mood_transitions"
+
+
+    # JWT Configuration
+    SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
 
 
     # Spotify Configuration

@@ -25,6 +25,7 @@ class TransitionResponse(TransitionBase):
     """Schema for mood transition responses."""
     id: int = Field(..., description="Unique identifier for the mood transition")
     timestamp: datetime = Field(..., description="When the transition was recorded")
+    user_id: int = Field(..., description="ID of the user who created this transition")
 
     class Config:
         orm_mode = True

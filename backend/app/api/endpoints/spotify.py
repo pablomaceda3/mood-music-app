@@ -272,7 +272,4 @@ def get_mood_transition_tracks(
             unique_tracks.append(uri)
             seen.add(uri)
     
-    # Shuffle the tracks to add more randomness
-    random.shuffle(unique_tracks)
-    
     return unique_tracks
