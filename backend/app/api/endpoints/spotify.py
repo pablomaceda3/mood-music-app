@@ -128,7 +128,7 @@ async def create_mood_transition_playlist(
             created_at=datetime.utcnow()
         )
 
-        db.add(db.playlist)
+        db.add(db_playlist)
         db.commit()
         db.refresh(db_playlist)
 
